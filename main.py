@@ -13,11 +13,12 @@ def circle(x, y, r):
     return int(math.sqrt(x**2 + y**2) <= r) * 255
 
 
-def gen_image(input_path="state/image.mem"):
+def gen_image(output_path):
     image_array = np.zeros((HEIGHT, WIDTH, 4), dtype=np.uint8)
     bw_image_array = np.zeros((HEIGHT, WIDTH, 4), dtype=np.uint8)
 
-    with open(input_path, "w") as f:
+    # create if doesn't exist
+    with open(output_path, "w") as f:
         # Generate the image as per the logic in the script
         for y in range(HEIGHT):
             for x in range(WIDTH):
@@ -84,7 +85,7 @@ def load_image(input_path, output_path):
                     f.write(hex(value)[2:] + "\n")
 
 
-def view_image_color(input_path="output.mem"):
+def view_image_color(input_path):
     data = bytearray()
     with open(input_path, "r") as file:
         for x in file.read().split():
@@ -95,7 +96,7 @@ def view_image_color(input_path="output.mem"):
     image.show()
 
 
-def view_image_bw(input_path="image.mem"):
+def view_image_bw(input_path):
     pixels = []
     with open(input_path, "r") as file:
         for value in [int(x, 16) for x in file.read().split()]:
@@ -165,3 +166,5 @@ if __name__ == "__main__":
             else:
                 print("Usage: python3 main.py to_qoi <raw_bytes_file> <qoi_file>")
                 exit()
+        case _:
+            print("Usage: python3 main.py <gen|load|view_color|view_bw|to_qoi>")
