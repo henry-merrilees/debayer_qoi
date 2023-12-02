@@ -577,7 +577,7 @@ module integrated_tb(
         output_memory[(read_it/2)/8][7-((read_it/2)%8)] <= sdo;
       end else if (spi_done &  writing) begin
         $display("Bytes output: %d", dut.bytes_output);
-        $writememh("output_post_spi.mem", output_memory);
+        $writememh("output.mem", output_memory);
         $finish;
       end
 endmodule

@@ -405,7 +405,7 @@ VL_INLINE_OPT void Vintegrated_tb___024root___nba_sequent__TOP__3(Vintegrated_tb
     __Vdlyvlsb__integrated_tb__DOT__output_memory__v0 = 0;
     CData/*0:0*/ __Vdlyvval__integrated_tb__DOT__output_memory__v0;
     __Vdlyvval__integrated_tb__DOT__output_memory__v0 = 0;
-    VlWide<5>/*159:0*/ __Vtemp_1;
+    VlWide<3>/*95:0*/ __Vtemp_1;
     // Body
     if (VL_GTS_III(32, 0x4b00U, vlSelf->integrated_tb__DOT__it)) {
         vlSelf->integrated_tb__DOT__sdi = (1U & (((0x4afU 
@@ -458,11 +458,9 @@ VL_INLINE_OPT void Vintegrated_tb___024root___nba_sequent__TOP__3(Vintegrated_tb
                             & (IData)(vlSelf->integrated_tb__DOT__writing)))) {
         VL_WRITEF("Bytes output: %4#\n",13,vlSelf->integrated_tb__DOT__dut__DOT__bytes_output);
         __Vtemp_1[0U] = 0x2e6d656dU;
-        __Vtemp_1[1U] = 0x5f737069U;
-        __Vtemp_1[2U] = 0x706f7374U;
-        __Vtemp_1[3U] = 0x7075745fU;
-        __Vtemp_1[4U] = 0x6f7574U;
-        VL_WRITEMEM_N(true, 8, 6000, 0, VL_CVT_PACK_STR_NW(5, __Vtemp_1)
+        __Vtemp_1[1U] = 0x74707574U;
+        __Vtemp_1[2U] = 0x6f75U;
+        VL_WRITEMEM_N(true, 8, 6000, 0, VL_CVT_PACK_STR_NW(3, __Vtemp_1)
                       ,  &(vlSelf->integrated_tb__DOT__output_memory)
                       , 0, ~0ULL);
         VL_FINISH_MT("integrated.sv", 581, "");
