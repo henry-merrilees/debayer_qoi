@@ -128,7 +128,7 @@ endmodule
 
 module color_input_memory (
     input  logic [10:0] address,
-    input  logic [7:0]  data_in[1200],
+    input  logic [7:0]  data_in[1200]/* synthesis syn_ramstyle="block_ram" */,
     output logic [ 7:0] data_out[1:-1][1:-1]
 );
 
@@ -148,9 +148,9 @@ endmodule
 
 module color (
     input logic clk, reset_n,
-    input [7:0] data_in[1200],
-    output rgba_t channels[1200],
-    output done
+    input [7:0] data_in[1200]/* synthesis syn_ramstyle="block_ram" */,
+    output rgba_t channels[1200]/* synthesis syn_ramstyle="block_ram" */,
+    output logic done
 );
 
   logic [10:0] address;
@@ -232,12 +232,12 @@ endmodule
 
 // adapted from https://github.com/phoboslab/qoi/blob/master/qoi.h (reference c encoder)
 
-
+typedef enum {ENCODE_PIXEL, WRITE0, WRITE1, WRITE2, WRITE3, WRITE4} qoi_state_t;
 module qoi #(parameter WIDTH = 40, parameter HEIGHT = 30 )
 (
 	input clk, reset_n,
-        input rgba_t qoi_input_memory[1200],
-        output logic [7:0] output_memory[6000],  // maximum 5 bytes per pixel, 1200 pixels = 6000 bytes
+        input rgba_t qoi_input_memory[1200] /* synthesis syn_ramstyle="block_ram" */,
+        output logic [7:0] output_memory[6000] /* synthesis syn_ramstyle="block_ram" */,  // maximum 5 bytes per pixel, 1200 pixels = 6000 bytes
         output logic [12:0] bytes_output // 0 when not ready, number of bytes when done
 	);
 
@@ -251,12 +251,13 @@ module qoi #(parameter WIDTH = 40, parameter HEIGHT = 30 )
   
 
   assign cur_px = qoi_input_memory[input_address];
+  logic qoi_clk;
 
   qoi_core #(
     .WIDTH(WIDTH),
     .HEIGHT(HEIGHT)
   ) core (
-    .clk(clk),
+    .clk(qoi_clk),
     .reset_n(reset_n),
     .cur_px(cur_px),
     .output_data(output_data),
@@ -264,22 +265,47 @@ module qoi #(parameter WIDTH = 40, parameter HEIGHT = 30 )
   );
 
   logic done;
-  always_ff @(posedge clk) done <= input_address >= WIDTH * HEIGHT + 2;
+  always_ff @(posedge qoi_clk) done <= input_address >= WIDTH * HEIGHT + 2;
 
-  always_ff @(posedge clk) 
+  always_ff @(posedge qoi_clk) 
 	if (!reset_n) input_address <= 0;
         else if (!done) input_address <= input_address + 1;
 
-  always_ff @(posedge clk)
+  always_ff @(posedge qoi_clk)
     if (!reset_n) bytes_output <= 0;
     else if (input_address == WIDTH * HEIGHT + 1 && !done) begin
       bytes_output <= output_address + 13'(output_count);
     end
+	
+    qoi_state_t qoi_state;
+	always_ff @(posedge clk)
+		if (!reset_n) qoi_state <= ENCODE_PIXEL;
+		else case (qoi_state)
+			ENCODE_PIXEL: qoi_state <= WRITE0;
+			WRITE0: qoi_state <= WRITE1;
+			WRITE1: qoi_state <= WRITE2;
+			WRITE2: qoi_state <= WRITE3;
+			WRITE3: qoi_state <= WRITE4;
+			WRITE4: qoi_state <= ENCODE_PIXEL;
+		endcase
+			
+	
+	always_ff @(posedge clk)
+		case(qoi_state)
+			ENCODE_PIXEL: qoi_clk <= 1;
+			WRITE0: begin
+				qoi_clk <= 0;
+				output_memory[output_address] <= output_data[4];
+			end
+			WRITE1: output_memory[output_address + 1] <= output_data[3];
+			WRITE2: output_memory[output_address + 2] <= output_data[2];
+			WRITE3: output_memory[output_address + 3] <= output_data[1];
+			WRITE4: output_memory[output_address + 4] <= output_data[0];
+		endcase
 
-
-	generate genvar i;
-	        for (i = 0; i < 5; i++) always_ff @(posedge clk) if (output_count > 0) output_memory[output_address + i] <= output_data[4 - i];
-	endgenerate
+	//generate genvar i;
+	        //for (i = 0; i < 5; i++) always_ff @(posedge clk) if (output_count > 0) output_memory[output_address + i] <= output_data[4 - i];
+	//endgenerate
 
 	always_ff @(posedge clk) output_address <= output_address + 13'(output_count);
 endmodule
@@ -445,8 +471,8 @@ module spi(
   input logic sck, sdi, 
   output logic sdo, spi_done,
 
-  output logic [7:0] data_in[1200],
-  input logic [7:0] output_memory[6000],
+  output logic [7:0] data_in[1200] /* synthesis syn_ramstyle="block_ram" */,
+  input logic [7:0] output_memory[6000] /* synthesis syn_ramstyle="block_ram" */,
   input logic [12:0] bytes_output
   );
 
@@ -522,62 +548,62 @@ module integrated(
 endmodule
 
 
-module integrated_tb(
-    input logic clk
-    );
+//module integrated_tb(
+    //input logic clk
+    //);
 
-    logic sdi, sck, reading;
-    logic sdo, writing, spi_done;
+    //logic sdi, sck, reading;
+    //logic sdo, writing, spi_done;
 
-    integrated dut(
-        .clk(clk),
-        .sdi(sdi),
-        .sck(sck),
-        .reading(reading),
-        .sdo(sdo),
-        .writing(writing),
-        .spi_done(spi_done)
-    );
+    //integrated dut(
+        //.clk(clk),
+        //.sdi(sdi),
+        //.sck(sck),
+        //.reading(reading),
+        //.sdo(sdo),
+        //.writing(writing),
+        //.spi_done(spi_done)
+    //);
 
-    logic [7:0] data_in[1200]  /* synthesis syn_ramstyle="block_ram" */;
-    initial $readmemh("image.mem", data_in);
+    //logic [7:0] data_in[1200]  /* synthesis syn_ramstyle="block_ram" */;
+    //initial $readmemh("image.mem", data_in);
 
 
-    logic [7:0] output_memory[6000]  /* synthesis syn_ramstyle="block_ram" */;
-    initial output_memory = '{default: 0};
+    //logic [7:0] output_memory[6000]  /* synthesis syn_ramstyle="block_ram" */;
+    //initial output_memory = '{default: 0};
 
-    int it, read_it;
-    initial begin
-      sdi = 0;
-      sck = 0;
-      reading = 1;
-      writing = 0;
-      it = 0;
-      read_it = 0;
-    end
+    //int it, read_it;
+    //initial begin
+      //sdi = 0;
+      //sck = 0;
+      //reading = 1;
+      //writing = 0;
+      //it = 0;
+      //read_it = 0;
+    //end
 
-    logic writing_last;
+    //logic writing_last;
 
-    always_ff @(posedge clk) writing_last <= writing;
+    //always_ff @(posedge clk) writing_last <= writing;
 
-    always_ff @(posedge clk) it <= it + 1;
+    //always_ff @(posedge clk) it <= it + 1;
 
-    always_ff @(posedge clk)
-      if (it < 1200*8 * 2) begin 
-        sdi <= data_in[(it/2)/8][7-(it/2)%8];
-        sck <= 1'(it % 2);
-      end else if (it == 1200*8 * 2) begin
-        reading <= 0;
-      end else if (writing & !writing_last) begin
-        read_it <= 0;
-        sck <= 0;
-      end else if (writing & !spi_done) begin
-        read_it <= read_it + 1;
-        sck <= 1'(read_it % 2);
-        output_memory[(read_it/2)/8][7-((read_it/2)%8)] <= sdo;
-      end else if (spi_done &  writing) begin
-        $display("Bytes output: %d", dut.bytes_output);
-        $writememh("output.mem", output_memory);
-        $finish;
-      end
-endmodule
+    //always_ff @(posedge clk)
+      //if (it < 1200*8 * 2) begin 
+        //sdi <= data_in[(it/2)/8][7-(it/2)%8];
+        //sck <= 1'(it % 2);
+      //end else if (it == 1200*8 * 2) begin
+        //reading <= 0;
+      //end else if (writing & !writing_last) begin
+        //read_it <= 0;
+        //sck <= 0;
+      //end else if (writing & !spi_done) begin
+        //read_it <= read_it + 1;
+        //sck <= 1'(read_it % 2);
+        //output_memory[(read_it/2)/8][7-((read_it/2)%8)] <= sdo;
+      //end else if (spi_done &  writing) begin
+        //$display("Bytes output: %d", dut.bytes_output);
+        //$writememh("output.mem", output_memory);
+        //$finish;
+      //end
+//endmodule
